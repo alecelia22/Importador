@@ -12,7 +12,7 @@ import jxl.Sheet;
 import jxl.Workbook;
 import jxl.read.biff.BiffException;
 
-public class ImportarExcel {
+public class ImportarEmpleador {
 
 	/**
 	 * Columnas empleadores: 
@@ -38,10 +38,8 @@ public class ImportarExcel {
 		File archivo = new File("D:/LSC/workspaces/Importador/Excels/SPAT - AMCA Reporte de Empleadores.xls"); 
 		// Lo leo como excel
 		Workbook empleadoresExcel = Workbook.getWorkbook(archivo);
-		// Hagarro la primer hoja
+		// Agarro la primer hoja
 		Sheet empleadoresSheet = empleadoresExcel.getSheet(0);
-
-		String domicilio;
 
 		// Recorremos las filas (Excluyendo los nombres de columnas)
 		for (int fila = 1; fila < empleadoresSheet.getRows(); fila++) {
@@ -55,7 +53,7 @@ public class ImportarExcel {
 				
 				if (!rs.next()) {
 					// DOMICILIO
-					domicilio = empleadoresSheet.getCell(2, fila).getContents();
+					String domicilio = empleadoresSheet.getCell(2, fila).getContents();
 					domicilio = domicilio.split(" -")[0].replace(" /", "");
 					
 					// CUIT
