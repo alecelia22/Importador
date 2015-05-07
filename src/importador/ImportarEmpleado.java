@@ -54,16 +54,23 @@ public class ImportarEmpleado {
 				String obraSocial = empleadosSheet.getCell(9, fila).getContents();
 				
 				// NOMBRE Y APELLIDO
-				String[] nombres = apellidoNombre.split("");
+				String[] nombres = apellidoNombre.split(" ");
 				String apellido;
 				String nombre;
+				int cant = 0;
 				
-				if (nombres.length > 2) {
+				if (nombres.length > 3) {
 					apellido = nombres[0] + " " + nombres[1];
-					nombre = nombres[2] + " " + nombres[3];
+					nombre = nombres[2];
+					cant = 3;
 				} else {
 					apellido = nombres[0];
 					nombre = nombres[1];
+					cant = 2;
+				}
+				
+				for (int i = cant; i < nombres.length; i ++) {
+					nombre = nombre + " " + nombres[i];
 				}
 				
 				//CUIL
@@ -71,56 +78,82 @@ public class ImportarEmpleado {
 				
 				// FECHA ALTA
 				String[] fechaSplit = fechaAlta.split("/");
-				String fechaAltaFormat = fechaSplit[2] + "-" + fechaSplit[1] + "-" + fechaSplit[0];
+				
+				String ano = fechaSplit[2];
+				
+				if (ano.length() <= 2) {
+					if (new Integer(ano).intValue() > 30) {
+						ano = "19" + ano;
+					} else {
+						ano = "20" + ano;
+					}
+				}
+				
+				
+				String fechaAltaFormat = ano + "-" + fechaSplit[1] + "-" + fechaSplit[0];
 
 				// Empleador
 				String buscarEmpleador = "select id from empleador where razon_social = '" + razonSocial + "'";
 				ResultSet rs = st.executeQuery(buscarEmpleador);
 				long idEmpleador = 0;
-				
+
 		        while (rs.next()) {
 		        	idEmpleador = rs.getLong("id");
 		        }
 
-		        // Insert a ejecutar
-		        StringBuilder insert = new StringBuilder("");
-		        
-				// JUBILADO
-				if (jubilado.equalsIgnoreCase("NO")) {
-					// Armo el insert
-					insert.append("INSERT INTO `lsc_schema`.`empleado` (`legajo`, `nombre`, `apellido`, `cuil`, `fecha_alta`, `jubilado`, `id_empleador`) VALUES (");
-					insert.append(legajo + ", ");
-					insert.append("'" + nombre + "', ");
-					insert.append("'" + apellido + "', ");
-					insert.append(cuil + ", ");
-					insert.append("'" + fechaAltaFormat + "', ");
-					insert.append(0 + ", ");
-					insert.append(idEmpleador + ")");
+		        // SI el empleador viene en 0, registro el error, sino sigo
+		        if (idEmpleador != 0) {
+		        	// Insert a ejecutar
+			        StringBuilder insert = new StringBuilder("");
+			        
+					// JUBILADO
+					if (jubilado.equalsIgnoreCase("SI")) {
+						// Armo el insert
+						insert.append("INSERT INTO `lsc_schema`.`empleado` (`legajo`, `nombre`, `apellido`, `cuil`, `fecha_alta`, `jubilado`, `id_empleador`) VALUES (");
+						insert.append(legajo + ", ");
+						insert.append("'" + nombre + "', ");
+						insert.append("'" + apellido + "', ");
+						insert.append(cuil + ", ");
+						insert.append("'" + fechaAltaFormat + "', ");
+						insert.append(1 + ", ");
+						insert.append(idEmpleador + ")");
+						// Ejecuto el insert
+						st.execute(insert.toString());
 
-				} else {
-					// OBRA SOCIAL
-					String buscarObraSocial = "select id from obra_social where descripcion_corta = '" + obraSocial + "'";
-					rs = st.executeQuery(buscarObraSocial);
-					long idObraSocial = 0;
+					} else {
+						// OBRA SOCIAL
+						String buscarObraSocial = "select id from obra_social where descripcion_corta = '" + obraSocial.toUpperCase() + "'";
+						rs = st.executeQuery(buscarObraSocial);
+						long idObraSocial = 0;
+						
+				        while (rs.next()) {
+				        	idObraSocial = rs.getLong("id");
+				        }
+				        
+				        // SI la obra social viene en 0, registro el error, sino sigo
+				        if (idObraSocial != 0) {
+				        	// Armo el insert
+							insert.append("INSERT INTO `lsc_schema`.`empleado` (`legajo`, `nombre`, `apellido`, `cuil`, `fecha_alta`, `jubilado`, `id_obra_social`, `id_empleador`) VALUES (");
+							insert.append(legajo + ", ");
+							insert.append("'" + nombre + "', ");
+							insert.append("'" + apellido + "', ");
+							insert.append(cuil + ", ");
+							insert.append("'" + fechaAltaFormat + "', ");
+							insert.append(0 + ", ");
+							insert.append(idObraSocial + ", ");
+							insert.append(idEmpleador + ")");
+							// Ejecuto el insert
+							st.execute(insert.toString());
+				        } else {
+				        	// No aparecio la obra social
+				        	System.err.println("No encontre la obra social " + obraSocial + " para el empleado " + apellidoNombre);
+				        }
+					}
 					
-			        while (rs.next()) {
-			        	idEmpleador = rs.getLong("id");
-			        }
-					
-					// Armo el insert
-					insert.append("INSERT INTO `lsc_schema`.`empleado` (`legajo`, `nombre`, `apellido`, `cuil`, `fecha_alta`, `jubilado`, `id_obra_social`, `id_empleador`) VALUES (");
-					insert.append(legajo + ", ");
-					insert.append("'" + nombre + "', ");
-					insert.append("'" + apellido + "', ");
-					insert.append(cuil + ", ");
-					insert.append("'" + fechaAltaFormat + "', ");
-					insert.append(1 + ", ");
-					insert.append(idObraSocial + ", ");
-					insert.append(idEmpleador + ")");					
-				}
-
-				// Ejecuto el insert
-				st.execute(insert.toString());
+		        } else {
+		        	// No aparecio el empleador
+		        	System.err.println("No encontre el empleador " + razonSocial + " para el empleado " + apellidoNombre);
+		        }
 			}
 		}
 
